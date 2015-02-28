@@ -1,85 +1,26 @@
-require 'io/console'
-require 'colorize'
-require 'securerandom'
-require 'pry'
+require_relative 'helper'
 
+# initialize constants
 @constants = {}
 @constants[:backspace] = "\x7F"
 @constants[:command_c] = "\x03"
+@constants[:tab] = "\t"
 
+# initialize history
 @history = []
 @history_index = 0
-@mode = 'insert'
 
+# initialize aliases
 @aliases = {}
-@file_to_watch_changed = false
-
-def get_branch_name
-  if system("git branch > /dev/null 2> /dev/null")
-    b = `git branch`.split("\n").delete_if { |i| i[0] != "*" }
-    branch_name = b.first.gsub("* ","")
-
-    if branch_name == 'master'
-      branch_name.green
-    else
-      branch_name.red
-    end
-  else
-    ''
-  end
-end
-
-def current_dir
-  Dir.pwd.yellow
-end
-
-def calc_prefix
-  branch = ''
-  branch += current_dir
-  if get_branch_name != ''
-    branch += '::' + get_branch_name
-  end
-  branch += '> '
-end
+# TODO: read in alias file
 
 @shell_prefix = "calc_prefix"
-## @shell_prefix = "Dir.pwd.green + '> '"
-
-@last_modified_time = Time.now
-
-@file_to_watch = '/tmp/.' + SecureRandom.uuid.to_s + '.command'
-
-File.open(@file_to_watch, 'w') {}
-
-def read_file_to_execute
-  # read the file, THEN get the last modified time
-  command = File.read(@file_to_watch)
-  @last_modified_time = File.mtime(@file_to_watch)
-  command
-end
-
-file_to_execute = Thread.new {
-  loop do
-    if command_file_changed
-     @last_modified_time = File.mtime(@file_to_watch)
-     @file_to_watch_changed = true
-     Thread.current['file_changed'] = :true
-    else
-      Kernel.sleep 1
-    end
-  end
-}
-
-
-
-def command_file_changed
-  File.mtime(@file_to_watch) != @last_modified_time
-end
 
 def shell_prefix
   return eval(@aliases['shell_prefix'] || @shell_prefix).to_s 
 end
 
+# Setup UI
 print shell_prefix
 exit_keywords = %w[quit exit]
 
@@ -150,13 +91,6 @@ def handle_special_char(char)
   input
 end
 
-def open_command_in_editor(input)
-  File.open(@file_to_watch, 'w') { |file|
-   file.write(input)
-  }
-  system("$editor " + @file_to_watch)
-end
-
 def update_input_string(input)
   # get last character and display it
   last_char = STDIN.getch
@@ -182,73 +116,6 @@ def update_input_string(input)
       input << last_char
   end
 
-  input
-end
-
-def exec_builtins(input)
-  executed = false
-
-  args = input.split(" ")
-  case args.first
-  when 'cd'
-    begin
-      # show where we are
-      puts shell_prefix + input
-
-      #actually change
-      Dir.chdir(args[1..-1].join(" "))
-
-      # Show where we went
-      puts Dir.pwd
-
-      # back to accept a new command
-      print shell_prefix
-      executed = true
-    rescue
-      puts 'Could not cd into path: ' + args[1..-1].join(" ")
-      executed = true
-      print shell_prefix
-    end
-  when 'history'
-    puts shell_prefix + input
-    @history.each_with_index do |entry, index|
-      puts index.to_s + ' : ' + entry
-    end
-    print shell_prefix
-
-    executed = true
-  when 'alias'
-    puts shell_prefix + input
-    key = input.split(' ')[1].split('=').first
-    value = input.split('=').last.gsub('"', '')
- 
-    @aliases[key] = value
-    puts key + ' aliased to: ' + value 
-    executed = true 
-    print shell_prefix
-  end
-
-  executed
-end
-
-def substitute_last_arg(input)
-    if @history.last.split(" ")[1..-1]
-      input.gsub!('!$', @history.last.split(" ")[1..-1].join(" "))
-    end
-    input
-end
-
-def parse_special_symbols(input)
-  if @history.last != nil
-    input.gsub!('!!', @history.last)
-    input = substitute_last_arg(input)
-  end
-
-  if input.scan(/!\d/) != []
-    # get all digits, convert to int
-    input = @history[input.scan(/!\d+/).first[1..-1].to_i]
-  end
- 
   input
 end
 
