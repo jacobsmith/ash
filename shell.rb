@@ -12,6 +12,7 @@ require_relative 'helper'
 
 # initialize aliases
 @aliases = {}
+read_in_aliases
 # TODO: read in alias file
 
 @directory_locations = []
