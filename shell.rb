@@ -12,8 +12,38 @@ require 'pry'
 @mode = 'insert'
 
 @aliases = {}
+@file_to_watch_changed = false
 
-@shell_prefix = "Dir.pwd.green + '> '"
+def get_branch_name
+  if system("git branch > /dev/null 2> /dev/null")
+    b = `git branch`.split("\n").delete_if { |i| i[0] != "*" }
+    branch_name = b.first.gsub("* ","")
+
+    if branch_name == 'master'
+      branch_name.green
+    else
+      branch_name.red
+    end
+  else
+    ''
+  end
+end
+
+def current_dir
+  Dir.pwd.yellow
+end
+
+def calc_prefix
+  branch = ''
+  branch += current_dir
+  if get_branch_name != ''
+    branch += '::' + get_branch_name
+  end
+  branch += '> '
+end
+
+@shell_prefix = "calc_prefix"
+## @shell_prefix = "Dir.pwd.green + '> '"
 
 @last_modified_time = Time.now
 
@@ -22,16 +52,20 @@ require 'pry'
 File.open(@file_to_watch, 'w') {}
 
 def read_file_to_execute
-  File.read(@file_to_watch)
+  # read the file, THEN get the last modified time
+  command = File.read(@file_to_watch)
+  @last_modified_time = File.mtime(@file_to_watch)
+  command
 end
 
 file_to_execute = Thread.new {
   loop do
     if command_file_changed
-      @last_modified_time = File.mtime(@file_to_watch)
-      Thread.current['file_changed'] = :true
+     @last_modified_time = File.mtime(@file_to_watch)
+     @file_to_watch_changed = true
+     Thread.current['file_changed'] = :true
     else
-      Kernel.sleep 0.5
+      Kernel.sleep 1
     end
   end
 }
@@ -120,49 +154,33 @@ def open_command_in_editor(input)
   File.open(@file_to_watch, 'w') { |file|
    file.write(input)
   }
-  system("$editor " + @file_to_watch) 
+  system("$editor " + @file_to_watch)
 end
 
 def update_input_string(input)
   # get last character and display it
   last_char = STDIN.getch
- 
-  case @mode
-  when 'insert' 
-    if last_char == "`"
-      open_command_in_editor(input)
-      puts
-      @mode = 'insert'
-    end
 
-    if (last_char == "\e")
+  case last_char 
+  when '`'
+      open_command_in_editor(input)
+  when "\e"
         # get any modifiers
         last_char = STDIN.getch
         last_char << STDIN.getch
         input = handle_special_char(last_char)
-    elsif (last_char == @constants[:backspace])
+  when @constants[:backspace]
       # stop us from removing the shell prefix
       if input.length > 0
         print "\b \b"
         input = input[0..-2]
       end
-    elsif (last_char == @constants[:command_c])
+  when @constants[:command_c]
       exit_shell 
-    else
+  else
       print last_char
       input << last_char
-    end
-  when 'normal'
-    @cursor = 0
-    case last_char
-    when 'i'
-      @mode = 'insert'
-    when 'b'
-      length = input.length
-      print "\b" * length
-    end
   end
-  
 
   input
 end
@@ -235,20 +253,21 @@ def parse_special_symbols(input)
 end
 
 while(true) do
-  if file_to_execute['file_changed'] == :true
-    input = read_file_to_execute
-    file_to_execute['file_changed'] = :false
-    print input
-  end
   
   input ||= ''
 
   input = update_input_string(input)
+
+  if @file_to_watch_changed #file_to_execute['file_changed'] == :true
+    input = read_file_to_execute
+    @file_to_watch_changed = false
+  #  file_to_execute['file_changed'] = :false
+  end
  
   # handle returning a nil value 
   input ||= ''
 
-  if (input[-1] == "\r")
+  if (input[-1] == "\r" || input[-1] == "\n")
     # remove return 
     input = input.strip
 
