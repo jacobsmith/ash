@@ -14,6 +14,10 @@ require_relative 'helper'
 @aliases = {}
 # TODO: read in alias file
 
+@directory_locations = []
+@directory_locations << Dir.pwd
+@back_history = 0
+
 @shell_prefix = "calc_prefix"
 
 def shell_prefix

@@ -5,18 +5,54 @@ def exec_builtins(input)
   case args.first
   when 'cd'
     begin
-      # show where we are
-      puts shell_prefix + input
+      # handle jumping to the last directory
+      if args[1] == "-"
+        @back_history = 0
+        puts shell_prefix + input
+       
+        Dir.chdir(@directory_locations[(@directory_locations.length)-2])
+        @directory_locations << Dir.pwd 
+        
+        # Show where we went
+        puts Dir.pwd
+        
+        # back to accept a new command
+        print shell_prefix
+        executed = true
+      elsif args[1] == "<"
+        Dir.chdir(
+          @directory_locations[@directory_locations.length - @back_history - 1])
+        @back_history += 1
+        
+        puts shell_prefix + input
+        # Show where we went
+        puts Dir.pwd
+        
+        # back to accept a new command
+        print shell_prefix
+        executed = true
+      elsif %w[history -h].include? args[1]
+        puts shell_prefix + input
+        puts @directory_locations
+        
+        # back to accept a new command
+        print shell_prefix
+        executed = true
+      else  
+        @back_history = 0
+        # show where we are
+        puts shell_prefix + input
+        #actually change
+        Dir.chdir(args[1..-1].join(" "))
+        @directory_locations << Dir.pwd
 
-      #actually change
-      Dir.chdir(args[1..-1].join(" "))
+        # Show where we went
+        puts Dir.pwd
 
-      # Show where we went
-      puts Dir.pwd
-
-      # back to accept a new command
-      print shell_prefix
-      executed = true
+        # back to accept a new command
+        print shell_prefix
+        executed = true
+      end
     rescue
       puts 'Could not cd into path: ' + args[1..-1].join(" ")
       executed = true
