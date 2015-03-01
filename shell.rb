@@ -13,7 +13,9 @@ require_relative 'helper'
 # initialize aliases
 @aliases = {}
 read_in_aliases
-# TODO: read in alias file
+
+@colors = {}
+@colors['directories'] = 'blue'
 
 @directory_locations = []
 @directory_locations << Dir.pwd
@@ -115,7 +117,37 @@ def update_input_string(input)
         input = input[0..-2]
       end
   when @constants[:command_c]
-      exit_shell 
+      input = ''
+      puts
+      print shell_prefix
+  when @constants[:tab]
+        puts
+
+        if input.split(" ").length == 1
+          path = ""
+        else
+          path = input.split(" ").last
+        end
+
+        options = Dir.glob("#{path}*")
+
+        if options.length == 1
+          input = input.split(" ").first
+          input += ' ' + options.first
+        else
+          b = options.each do |file|
+            case File.ftype(file)
+            when 'file'
+              puts file.green
+            when 'directory'
+              puts file.instance_eval(@colors['directories'])
+            else
+              puts file.blue
+            end
+          end
+        end
+          
+        print shell_prefix + input
   else
       print last_char
       input << last_char
