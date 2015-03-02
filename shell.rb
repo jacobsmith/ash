@@ -140,20 +140,31 @@ def update_input_string(input)
     if options.length == 1
       input.gsub!(/ \S*\t/, ' ' + options.first)
     else
-      known_path = input.scan(/\S*\t/).first.sub("\t", '')
+      known_path = input.scan(/\S*\t/).first.sub("\t", '').sub(/\S\\/, '')
       b = options.each do |file|
         case File.ftype(file)
         when 'file'
-          puts file.sub(known_path, '').green
+          if known_path[-1] == "/"
+            puts file.sub(known_path, '').green
+          else
+            puts file.green
+          end
         when 'directory'
-          puts (file.sub(known_path, '') + '/').instance_eval(@colors['directories'])
+          if known_path[-1] == "/"
+            puts (file.sub(known_path, '') + '/').instance_eval(@colors['directories'])
+          else
+            puts (file + '/').instance_eval(@colors['directories'])
+          end
         else
           puts file.blue
         end
       end
     end
-    
-    input.gsub!("\t", "")
+  
+    if options != [] 
+      match = find_unambiguous_string(options)
+      input.gsub!(/\S*\t/, match)
+    end
       
     print shell_prefix + input
   else
@@ -162,6 +173,26 @@ def update_input_string(input)
   end
 
   input
+end
+
+def find_unambiguous_string(options)
+  max_len = options.max_by(&:length).length
+ 
+  result = '' 
+  0.upto max_len do |i|
+    add_char = true
+    options.each do |option|
+      if option[i] != options.first[i]
+        add_char = false
+      end
+    end 
+    
+    if add_char
+      result << options.first[i].to_s 
+    end 
+  end
+
+  result
 end
 
 while(true) do
