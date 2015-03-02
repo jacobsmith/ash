@@ -121,33 +121,41 @@ def update_input_string(input)
       puts
       print shell_prefix
   when @constants[:tab]
-        puts
+    input << last_char
 
-        if input.split(" ").length == 1
-          path = ""
+    if input.match(/ \S*\t/)
+      glob = input.match(/ \S*\t/).to_s
+      glob.gsub!(/\t/, "")
+      glob.gsub!(/ /, "")
+    elsif input.match(/ \t/)
+      glob = input.match(/ \t/).to_s 
+      glob.gsub!(/\t/, "")
+      glob.gsub!(/ /, "")
+    end
+
+    puts
+
+    options = Dir.glob("#{glob}*")
+
+    if options.length == 1
+      input.gsub!(/ \S*\t/, ' ' + options.first)
+    else
+      known_path = input.scan(/\S*\t/).first.sub("\t", '')
+      b = options.each do |file|
+        case File.ftype(file)
+        when 'file'
+          puts file.sub(known_path, '').green
+        when 'directory'
+          puts (file.sub(known_path, '') + '/').instance_eval(@colors['directories'])
         else
-          path = input.split(" ").last
+          puts file.blue
         end
-
-        options = Dir.glob("#{path}*")
-
-        if options.length == 1
-          input = input.split(" ").first
-          input += ' ' + options.first
-        else
-          b = options.each do |file|
-            case File.ftype(file)
-            when 'file'
-              puts file.green
-            when 'directory'
-              puts file.instance_eval(@colors['directories'])
-            else
-              puts file.blue
-            end
-          end
-        end
-          
-        print shell_prefix + input
+      end
+    end
+    
+    input.gsub!("\t", "")
+      
+    print shell_prefix + input
   else
       print last_char
       input << last_char
