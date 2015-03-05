@@ -67,12 +67,24 @@ def exec_builtins(input)
 
     executed = true
   when 'alias'
+    if input.scan(/$alias -g/)
+      persist = true
+      input.sub!("alias -g", 'alias')
+    end
+
     puts shell_prefix + input
     key = input.split(' ')[1].split('=').first
     value = input.split('=').last.gsub('"', '')
  
     @aliases[key] = value
     puts key + ' aliased to: ' + value 
+
+    if persist
+      File.open('aliases.yaml', 'a') { |file|
+        file.write({key => value}.to_yaml.sub("---", ''))
+      }
+    end
+
     executed = true 
     print shell_prefix
   end

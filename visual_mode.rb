@@ -1,8 +1,8 @@
 # Visual mode initializers
 @file_to_watch_changed = false
-@last_modified_time = Time.now
 @file_to_watch = '/tmp/.' + SecureRandom.uuid.to_s + '.command'
 File.open(@file_to_watch, 'w') {}
+@last_modified_time = File.mtime(@file_to_watch)
 
 def read_file_to_execute
   # read the file, THEN get the last modified time

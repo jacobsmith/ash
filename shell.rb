@@ -201,10 +201,9 @@ while(true) do
 
   input = update_input_string(input)
 
-  if @file_to_watch_changed #file_to_execute['file_changed'] == :true
+  if @file_to_watch_changed 
     input = read_file_to_execute
     @file_to_watch_changed = false
-  #  file_to_execute['file_changed'] = :false
   end
  
   # handle returning a nil value 

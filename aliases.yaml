@@ -1,3 +1,4 @@
 cls : clear
 test : echo hello daniela!
 gs : git status
+.. : cd ..
