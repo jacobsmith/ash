@@ -67,7 +67,7 @@ def exec_builtins(input)
 
     executed = true
   when 'alias'
-    if input.scan(/$alias -g/)
+    if input.scan(/^alias -g/) != []
       persist = true
       input.sub!("alias -g", 'alias')
     end
