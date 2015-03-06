@@ -168,7 +168,8 @@ def update_input_string(input)
       match = find_unambiguous_string(options)
       input.gsub!(/\S*\t/, match)
     end
-      
+     
+    input.sub!(/\t/, "") 
     print shell_prefix + input
   else
       print last_char
