@@ -131,6 +131,9 @@ def update_input_string(input)
       glob = input.match(/ \t/).to_s 
       glob.gsub!(/\t/, "")
       glob.gsub!(/ /, "")
+    elsif input.match(/\.\/\w*\t/)
+      glob = input.match(/\.\/\w*\t/).to_s
+      glob.gsub!(/\t/, "")
     end
 
     puts
